@@ -9,6 +9,11 @@ import { dateWeatherTool, sportsVenueTool, travelPlanTool } from "../tools";
  * @param apiKey - OpenAI API Key（可选，如果不提供则从 process.env.OPENAI_API_KEY 读取）
  */
 export function createWeekendPlannerAgent(apiKey?: string) {
+	// 如果提供了 apiKey，设置到 process.env（如果可用）
+	if (apiKey && typeof process !== "undefined" && process.env) {
+		process.env.OPENAI_API_KEY = apiKey;
+	}
+
 	return new Agent({
 		name: "Weekend Planner Agent",
 		instructions: `你是一个专业的周末规划助手，专门帮助用户制定周末活动计划。
@@ -31,9 +36,7 @@ export function createWeekendPlannerAgent(apiKey?: string) {
 2. 根据需要调用相应的工具获取信息
 3. 综合分析信息，制定合理的计划
 4. 以清晰、友好的方式呈现给用户`,
-		model: openai("gpt-4o-mini", {
-			apiKey: apiKey || process.env.OPENAI_API_KEY,
-		}),
+		model: openai("gpt-4o-mini"),
 		tools: {
 			dateWeatherTool,
 			sportsVenueTool,
