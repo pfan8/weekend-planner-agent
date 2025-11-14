@@ -12,6 +12,6 @@
 	},
 	"upload_source_maps": true,
 	"vars": {
-		"NODE_ENV": "development"
+		"NODE_ENV": "production"
 	}
 }

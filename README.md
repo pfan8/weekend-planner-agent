@@ -1,6 +1,6 @@
-# LLM Chat Application Template
+# Weekend Planner Agent
 
-A simple, ready-to-deploy chat application template powered by Cloudflare Workers AI. This template provides a clean starting point for building AI chat applications with streaming responses.
+一个基于 Mastra Agent 和 Cloudflare Workers 的周末规划应用，使用 GraphQL API 提供天气查询、运动场馆搜索和旅游计划制定功能。
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/llm-chat-app-template)
 
@@ -17,13 +17,14 @@ This template demonstrates how to build an AI-powered chat interface using Cloud
 
 ## Features
 
-- 💬 Simple and responsive chat interface
-- ⚡ Server-Sent Events (SSE) for streaming responses
-- 🧠 Powered by Cloudflare Workers AI LLMs
-- 🛠️ Built with TypeScript and Cloudflare Workers
-- 📱 Mobile-friendly design
-- 🔄 Maintains chat history on the client
-- 🔎 Built-in Observability logging
+- 🤖 **Mastra Agent 集成** - 使用 Mastra 框架构建智能 Agent
+- 📊 **GraphQL API** - 提供 GraphQL 接口，支持查询和变更操作
+- 🌤️ **天气查询** - 查询中国城市的天气信息
+- 🏀 **运动场馆搜索** - 搜索适合周末运动的场馆（篮球、游泳、羽毛球等）
+- 🗺️ **旅游计划** - 制定周末旅游计划，包括路线规划和景点推荐
+- ⚡ **Cloudflare Workers** - 基于 Cloudflare Workers 的边缘计算部署
+- 🔒 **类型安全** - 使用 TypeScript 和 Zod 确保类型安全
+- 🧪 **完整测试** - 包含单元测试和集成测试
 <!-- dash-content-end -->
 
 ## Getting Started
@@ -68,11 +69,18 @@ Note: Using Workers AI accesses your Cloudflare account even during local develo
 
 ### Deployment
 
-Deploy to Cloudflare Workers:
+部署到 Cloudflare Workers：
 
 ```bash
 npm run deploy
 ```
+
+**详细部署指南请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)**
+
+部署前需要：
+1. 登录 Cloudflare：`npx wrangler login`
+2. 设置环境变量：`npx wrangler secret put OPENAI_API_KEY`
+3. 部署：`npm run deploy`
 
 ### Monitor
 
@@ -86,36 +94,99 @@ npm wrangler tail
 
 ```
 /
-├── public/             # Static assets
-│   ├── index.html      # Chat UI HTML
-│   └── chat.js         # Chat UI frontend script
 ├── src/
-│   ├── index.ts        # Main Worker entry point
-│   └── types.ts        # TypeScript type definitions
-├── test/               # Test files
-├── wrangler.jsonc      # Cloudflare Worker configuration
-├── tsconfig.json       # TypeScript configuration
-└── README.md           # This documentation
+│   ├── index.ts              # Main Worker entry point (GraphQL handler)
+│   ├── types.ts              # TypeScript type definitions
+│   ├── graphql/              # GraphQL schema and resolvers
+│   │   ├── schema.ts         # GraphQL schema definition
+│   │   └── resolvers.ts      # GraphQL resolvers
+│   └── mastra/               # Mastra Agent configuration
+│       ├── index.ts          # Mastra instance configuration
+│       ├── agents/            # Agent definitions
+│       │   └── weekend-planner-agent.ts
+│       ├── tools/             # Agent tools
+│       │   ├── date-weather-tool.ts
+│       │   ├── sports-venue-tool.ts
+│       │   ├── travel-plan-tool.ts
+│       │   └── index.ts
+│       └── __tests__/        # Unit tests
+├── test/                     # Integration tests
+├── wrangler.jsonc            # Cloudflare Worker configuration
+├── tsconfig.json             # TypeScript configuration
+├── vitest.config.ts          # Vitest test configuration
+├── DEPLOYMENT.md             # Deployment guide
+└── README.md                 # This documentation
 ```
 
 ## How It Works
 
-### Backend
+### Architecture
 
-The backend is built with Cloudflare Workers and uses the Workers AI platform to generate responses. The main components are:
+1. **GraphQL API** (`/api/chat` 或 `/graphql`): 接受 GraphQL 查询和变更请求
+2. **Mastra Agent**: 处理用户请求，调用相应的工具
+3. **Tools**: 
+   - `dateWeatherTool`: 查询天气信息
+   - `sportsVenueTool`: 搜索运动场馆
+   - `travelPlanTool`: 制定旅游计划
+4. **OpenAI Integration**: 使用 OpenAI API 作为 LLM 提供商
 
-1. **API Endpoint** (`/api/chat`): Accepts POST requests with chat messages and streams responses
-2. **Streaming**: Uses Server-Sent Events (SSE) for real-time streaming of AI responses
-3. **Workers AI Binding**: Connects to Cloudflare's AI service via the Workers AI binding
+### API 使用示例
 
-### Frontend
+#### GraphQL Query（健康检查）
 
-The frontend is a simple HTML/CSS/JavaScript application that:
+```graphql
+query {
+  health
+}
+```
 
-1. Presents a chat interface
-2. Sends user messages to the API
-3. Processes streaming responses in real-time
-4. Maintains chat history on the client side
+#### GraphQL Mutation（聊天）
+
+```graphql
+mutation Chat($messages: [MessageInput!]!) {
+  chat(messages: $messages) {
+    content
+  }
+}
+```
+
+**Variables:**
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "今天杭州的天气怎么样？"
+    }
+  ]
+}
+```
+
+### 测试
+
+运行测试：
+
+```bash
+# 运行所有测试
+npm test
+
+# 运行特定测试文件
+npm test src/mastra/__tests__/weekend-planner-agent.test.ts
+```
+
+本地测试 API：
+
+```bash
+# 使用测试脚本
+node test-graphql.js
+
+# 或使用 curl
+curl -X POST http://localhost:8787/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "mutation { chat(messages: [{role: \"user\", content: \"今天杭州的天气怎么样？\"}]) { content } }"
+  }'
+```
 
 ## Customization
 
@@ -146,8 +217,26 @@ The default system prompt can be changed by updating the `SYSTEM_PROMPT` constan
 
 The UI styling is contained in the `<style>` section of `public/index.html`. You can modify the CSS variables at the top to quickly change the color scheme.
 
-## Resources
+## 环境变量
 
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-- [Cloudflare Workers AI Documentation](https://developers.cloudflare.com/workers-ai/)
-- [Workers AI Models](https://developers.cloudflare.com/workers-ai/models/)
+在 `.dev.vars` 文件中配置本地开发环境变量：
+
+```
+OPENAI_API_KEY=your-openai-api-key
+WEATHER_API_KEY=your-weather-api-key  # 可选
+MAP_API_KEY=your-map-api-key          # 可选
+```
+
+**注意**: `.dev.vars` 文件不应提交到 Git。在生产环境中，使用 `wrangler secret put` 设置环境变量。
+
+## 相关资源
+
+- [Cloudflare Workers 文档](https://developers.cloudflare.com/workers/)
+- [Wrangler CLI 文档](https://developers.cloudflare.com/workers/wrangler/)
+- [Mastra 文档](https://docs.mastra.ai/)
+- [GraphQL 文档](https://graphql.org/)
+- [OpenAI API 文档](https://platform.openai.com/docs)
+
+## License
+
+MIT
