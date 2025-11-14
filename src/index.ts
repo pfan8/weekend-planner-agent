@@ -18,6 +18,63 @@ interface GraphQLRequest {
 	operationName?: string;
 }
 
+/**
+ * 允许的 CORS 源
+ * 在生产环境中，应该只允许特定的域名
+ */
+const ALLOWED_ORIGINS = [
+	"https://weekplan.pfan8remote.online",
+	"http://localhost:3000",
+	"http://localhost:8787",
+];
+
+/**
+ * 获取 CORS 头
+ */
+function getCorsHeaders(origin: string | null): Record<string, string> {
+	// 如果请求来自允许的源，则使用该源；否则使用 "*"（开发环境）
+	const allowOrigin =
+		origin && ALLOWED_ORIGINS.includes(origin) ? origin : "*";
+
+	return {
+		"Access-Control-Allow-Origin": allowOrigin,
+		"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+		"Access-Control-Max-Age": "86400", // 24 hours
+	};
+}
+
+/**
+ * 处理 CORS 预检请求
+ */
+function handleCorsPreflight(request: Request): Response {
+	const origin = request.headers.get("Origin");
+	const corsHeaders = getCorsHeaders(origin);
+
+	return new Response(null, {
+		status: 204,
+		headers: corsHeaders,
+	});
+}
+
+/**
+ * 为响应添加 CORS 头
+ */
+function addCorsHeaders(response: Response, request: Request): Response {
+	const origin = request.headers.get("Origin");
+	const corsHeaders = getCorsHeaders(origin);
+
+	const newHeaders = new Headers(response.headers);
+	Object.entries(corsHeaders).forEach(([key, value]) => {
+		newHeaders.set(key, value);
+	});
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers: newHeaders,
+	});
+}
+
 export default {
 	/**
 	 * Main request handler for the Worker
@@ -41,29 +98,41 @@ export default {
 
 		const url = new URL(request.url);
 
+		// 处理 CORS 预检请求
+		if (request.method === "OPTIONS") {
+			return handleCorsPreflight(request);
+		}
+
 		// GraphQL endpoint
 		if (url.pathname === "/api/chat" || url.pathname === "/graphql") {
 			// Handle POST requests for GraphQL
 			if (request.method === "POST") {
-				return handleGraphQLRequest(request, env);
+				const response = await handleGraphQLRequest(request, env);
+				return addCorsHeaders(response, request);
 			}
 
 			// Method not allowed for other request types
-			return new Response("Method Not Allowed", {
-				status: 405,
-				headers: { Allow: "POST" },
-			});
+			return addCorsHeaders(
+				new Response("Method Not Allowed", {
+					status: 405,
+					headers: { Allow: "POST" },
+				}),
+				request,
+			);
 		}
 
 		// Health check endpoint (also available via GraphQL Query)
 		if (url.pathname === "/health") {
-			return new Response(JSON.stringify({ status: "ok" }), {
-				headers: { "content-type": "application/json" },
-			});
+			return addCorsHeaders(
+				new Response(JSON.stringify({ status: "ok" }), {
+					headers: { "content-type": "application/json" },
+				}),
+				request,
+			);
 		}
 
 		// Handle 404 for unmatched routes
-		return new Response("Not found", { status: 404 });
+		return addCorsHeaders(new Response("Not found", { status: 404 }), request);
 	},
 } satisfies ExportedHandler<Env>;
 
