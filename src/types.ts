@@ -1,17 +1,18 @@
 /**
- * Type definitions for the LLM chat application.
+ * Type definitions for the Mastra Agent Weekend Planner application.
  */
 
 export interface Env {
 	/**
-	 * Binding for the Workers AI API.
+	 * OpenAI API Key (from environment variables)
 	 */
-	AI: Ai;
+	OPENAI_API_KEY?: string;
 
 	/**
-	 * Binding for static assets.
+	 * Other API keys for weather, maps, etc.
 	 */
-	ASSETS: { fetch: (request: Request) => Promise<Response> };
+	WEATHER_API_KEY?: string;
+	MAP_API_KEY?: string;
 }
 
 /**
