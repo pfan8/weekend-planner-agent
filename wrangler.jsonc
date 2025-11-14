@@ -3,7 +3,7 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */ {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "mastra-weekend-planner",
+	"name": "weekend-planner-agent",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-08",
 	"compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
