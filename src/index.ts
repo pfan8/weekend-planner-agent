@@ -10,7 +10,7 @@
 import { Env } from "./types";
 import { graphql } from "graphql";
 import { schema } from "./graphql/schema";
-import { rootValue } from "./graphql/resolvers";
+import { createRootValue } from "./graphql/resolvers";
 
 interface GraphQLRequest {
 	query: string;
@@ -27,6 +27,18 @@ export default {
 		env: Env,
 		ctx: ExecutionContext,
 	): Promise<Response> {
+		// 将 env 中的环境变量设置到 process.env，以便 OpenAI SDK 可以访问
+		// 这需要 compatibility_flags 中包含 "nodejs_compat_populate_process_env"
+		if (env.OPENAI_API_KEY && typeof process !== "undefined" && process.env) {
+			process.env.OPENAI_API_KEY = env.OPENAI_API_KEY;
+		}
+		if (env.WEATHER_API_KEY && typeof process !== "undefined" && process.env) {
+			process.env.WEATHER_API_KEY = env.WEATHER_API_KEY;
+		}
+		if (env.MAP_API_KEY && typeof process !== "undefined" && process.env) {
+			process.env.MAP_API_KEY = env.MAP_API_KEY;
+		}
+
 		const url = new URL(request.url);
 
 		// GraphQL endpoint
@@ -78,6 +90,9 @@ async function handleGraphQLRequest(
 				},
 			);
 		}
+
+		// 创建 rootValue，传入 env 以便访问环境变量
+		const rootValue = createRootValue(env);
 
 		// Execute GraphQL query
 		const result = await graphql({

@@ -3,12 +3,15 @@ import { openai } from "@ai-sdk/openai";
 import { dateWeatherTool, sportsVenueTool, travelPlanTool } from "../tools";
 
 /**
- * 周末规划 Agent
+ * 创建周末规划 Agent
  * 负责协调工具调用，为用户制定周末计划
+ * 
+ * @param apiKey - OpenAI API Key（可选，如果不提供则从 process.env.OPENAI_API_KEY 读取）
  */
-export const weekendPlannerAgent = new Agent({
-	name: "Weekend Planner Agent",
-	instructions: `你是一个专业的周末规划助手，专门帮助用户制定周末活动计划。
+export function createWeekendPlannerAgent(apiKey?: string) {
+	return new Agent({
+		name: "Weekend Planner Agent",
+		instructions: `你是一个专业的周末规划助手，专门帮助用户制定周末活动计划。
 
 你的主要功能包括：
 1. 查询天气信息：可以查询指定城市的当前天气和未来天气预报
@@ -28,12 +31,21 @@ export const weekendPlannerAgent = new Agent({
 2. 根据需要调用相应的工具获取信息
 3. 综合分析信息，制定合理的计划
 4. 以清晰、友好的方式呈现给用户`,
-	model: openai("gpt-4o-mini"),
-	tools: {
-		dateWeatherTool,
-		sportsVenueTool,
-		travelPlanTool,
-	},
-	maxRetries: 3,
-});
+		model: openai("gpt-4o-mini", {
+			apiKey: apiKey || process.env.OPENAI_API_KEY,
+		}),
+		tools: {
+			dateWeatherTool,
+			sportsVenueTool,
+			travelPlanTool,
+		},
+		maxRetries: 3,
+	});
+}
+
+/**
+ * 默认的周末规划 Agent（用于向后兼容）
+ * 注意：在生产环境中，应该使用 createWeekendPlannerAgent(env.OPENAI_API_KEY) 创建
+ */
+export const weekendPlannerAgent = createWeekendPlannerAgent();
 

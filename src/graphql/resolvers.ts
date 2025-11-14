@@ -1,49 +1,60 @@
-import { mastra } from "../mastra";
+import { createMastra } from "../mastra";
+import type { Env } from "../types";
 
 /**
  * GraphQL Resolvers
  * GraphQL resolver 函数签名: (parent, args, context, info)
  */
-export const rootValue = {
-	_empty: () => null,
-	health: () => "ok",
-	chat: async (
-		args: { messages: Array<{ role: string; content: string }> },
-		context: { env?: unknown },
-	) => {
-		const { messages } = args;
+export function createRootValue(env?: Env) {
+	// 创建 Mastra 实例，传入环境变量
+	const mastra = createMastra(env);
 
-		if (!Array.isArray(messages) || messages.length === 0) {
-			throw new Error("Invalid request format: messages array required");
-		}
+	return {
+		_empty: () => null,
+		health: () => "ok",
+		chat: async (
+			args: { messages: Array<{ role: string; content: string }> },
+		) => {
+			const { messages } = args;
 
-		// Get the last user message
-		const lastMessage = messages[messages.length - 1];
-		if (!lastMessage || lastMessage.role !== "user") {
-			throw new Error("Last message must be from user");
-		}
+			if (!Array.isArray(messages) || messages.length === 0) {
+				throw new Error("Invalid request format: messages array required");
+			}
 
-		// Get the weekend planner agent
-		const agent = mastra.getAgent("weekendPlannerAgent");
-		if (!agent) {
-			throw new Error("Weekend planner agent not found");
-		}
+			// Get the last user message
+			const lastMessage = messages[messages.length - 1];
+			if (!lastMessage || lastMessage.role !== "user") {
+				throw new Error("Last message must be from user");
+			}
 
-		// Get the last user message content
-		const userMessage = lastMessage.content;
+			// Get the weekend planner agent
+			const agent = mastra.getAgent("weekendPlannerAgent");
+			if (!agent) {
+				throw new Error("Weekend planner agent not found");
+			}
 
-		// Generate streaming response using agent.stream()
-		const response = await agent.stream(userMessage);
+			// Get the last user message content
+			const userMessage = lastMessage.content;
 
-		// Collect all chunks into a single content string
-		let fullContent = "";
-		for await (const chunk of response.textStream) {
-			fullContent += chunk;
-		}
+			// Generate streaming response using agent.stream()
+			const response = await agent.stream(userMessage);
 
-		return {
-			content: fullContent,
-		};
-	},
-};
+			// Collect all chunks into a single content string
+			let fullContent = "";
+			for await (const chunk of response.textStream) {
+				fullContent += chunk;
+			}
+
+			return {
+				content: fullContent,
+			};
+		},
+	};
+}
+
+/**
+ * 默认的 rootValue（用于向后兼容）
+ * 注意：在生产环境中，应该使用 createRootValue(env) 创建
+ */
+export const rootValue = createRootValue();
 
